@@ -118,7 +118,9 @@
             <div>
                 <a href="/history-page" class="btn btn-secondary btn-sm">View History</a>
                 <button id="saveChatButton" class="btn btn-success btn-sm">Save Chat</button>
+                <a href="/admin" class="btn btn-primary btn-sm" id="admin-button" style="display: none;">Admin</a>
                 <button id="logout-button" class="btn btn-danger btn-sm">Logout</button>
+
             </div>
         </div>
 
@@ -259,6 +261,23 @@
             inputField.addEventListener("keypress", event => {
                 if (event.key === "Enter") askQuestion();
             });
+        });
+   
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const adminButton = document.getElementById("admin-button");
+
+            try {
+                const response = await fetch("/is_logged_in");
+                const data = await response.json();
+
+                if (data.logged_in && data.role === "admin") {
+                    adminButton.style.display = "inline-block"; // Show Admin button for admins
+                }
+            } catch (error) {
+                console.error("Error checking login status:", error);
+            }
         });
     </script>
 </body>

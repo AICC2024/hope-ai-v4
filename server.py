@@ -214,6 +214,17 @@ def logout_user():
     session.clear()
     return jsonify({"success": True, "message": "Logged out successfully"})
 
+@app.route("/is_logged_in", methods=["GET"])
+def is_logged_in():
+    """Returns user login status and role."""
+    if "user_id" in session:
+        return jsonify({
+            "logged_in": True,
+            "email": session["email"],
+            "role": session["role"]
+        })
+    return jsonify({"logged_in": False})
+
 # Restrict access unless logged in
 @app.before_request
 def require_login():
