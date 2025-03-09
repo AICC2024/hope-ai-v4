@@ -17,10 +17,10 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # PostgreSQL Configuration
-PG_HOST = "localhost"
-PG_DATABASE = "hopeai_db"
-PG_USER = "hopeai_user"
-PG_PASSWORD = "Admin2025"
+PG_HOST = os.getenv("PG_HOST", "localhost")
+PG_DATABASE = os.getenv("PG_DATABASE", "hopeai_db")
+PG_USER = os.getenv("PG_USER", "hopeai_user")
+PG_PASSWORD = os.getenv("PG_PASSWORD", "Admin2025")
 
 # OpenAI API Configuration
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -30,18 +30,27 @@ ASSISTANT_ID = "asst_BVHJcqvmsENpjqhBlHI07sre"
 
 def get_db_connection():
     """Establish PostgreSQL connection."""
-    return psycopg2.connect(
-        host=PG_HOST,
-        database=PG_DATABASE,
-        user=PG_USER,
-        password=PG_PASSWORD
-    )
+    try:
+        return psycopg2.connect(
+            host=PG_HOST,
+            database=PG_DATABASE,
+            user=PG_USER,
+            password=PG_PASSWORD
+        )
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return None  # Return None if the connection fails
+
 
 # Ensure users table exists
 def init_db():
     """Creates the users and chat tables in PostgreSQL if they don't exist."""
+    conn = get_db_connection()
+    if conn is None:
+        print("Database initialization skipped due to connection failure.")
+        return
+
     try:
-        conn = get_db_connection()
         with conn:
             with conn.cursor() as cur:
                 cur.execute('''
@@ -55,6 +64,7 @@ def init_db():
                 cur.execute('''
                     CREATE TABLE IF NOT EXISTS chat (
                         id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                         question TEXT NOT NULL,
                         answer TEXT NOT NULL,
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -63,15 +73,15 @@ def init_db():
                 cur.execute('''
                     CREATE TABLE IF NOT EXISTS activity_log (
                         id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL,
-                        action VARCHAR(50) NOT NULL,
-                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users (id)
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        action TEXT NOT NULL,
+                        details TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
                 ''')
                 conn.commit()
     except Exception as e:
-        print(f"Database initialization error: {str(e)}")
+        print(f"Database initialization error: {e}")
     finally:
         if conn:
             conn.close()
